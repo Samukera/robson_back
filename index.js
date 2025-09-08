@@ -2,11 +2,27 @@ const app = require('express')();
 const http = require('http').createServer(app);
 const short = require('short-uuid');
 require('dotenv').config()
-const io = require("socket.io")(http, {
+// const io = require("socket.io")(http, {
+//     cors: {
+//         origin: process.env.ORIGIN || 'http://localhost:8081',
+//         methods: ["GET", "POST"]
+//     }
+// });
+
+const allowed = new Set(
+    (process.env.ORIGINS ||
+        'https://climabet.net,https://www.climabet.net,http://localhost:5173'
+    ).split(',').map(s => s.trim()).filter(Boolean)
+);
+
+const io = require('socket.io')(http, {
     cors: {
-        origin: process.env.ORIGIN || 'http://localhost:8081',
-        methods: ["GET", "POST"]
-    }
+        origin: (origin, cb) => {
+            if (!origin || allowed.has(origin)) return cb(null, true);
+            cb(new Error('Not allowed by CORS: ' + origin));
+        },
+        methods: ['GET', 'POST'],
+    },
 });
 
 setInterval(() => {
