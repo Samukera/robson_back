@@ -25,6 +25,7 @@ http.listen(process.env.PORT || 3000, () => {
 let players = [];
 let tickets = [];
 let gameType = [];
+let scoreTimeByRoom = {}; // { [roomId: string]: Array<{ point: string, time: string }> }
 
 let gameTypes = [
     { name: 'Fibonacci', values: [0, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, '☕'] },
@@ -53,6 +54,15 @@ io.on('connection', (socket) => {
     socket.emit('gameTypes', gameTypes)
     socket.join(roomId);
 
+    if (!scoreTimeByRoom[roomId]) {
+        scoreTimeByRoom[roomId] = [
+            { point: '0', time: '1h' },
+            { point: '1', time: '2h' },
+        ];
+    }
+    // manda o estado inicial pro cliente
+    socket.emit('scoreTime', scoreTimeByRoom[roomId]);
+
     players.push({ id: socket.id, name: '', role: 'player', roomId: roomId });
     gameType.push({ id: socket.id, gameType: gameTypes[0], roomId: roomId });
 
@@ -67,20 +77,50 @@ io.on('connection', (socket) => {
         updateClientsInRoom(roomId);
     });
 
-    socket.on('resetCurrent', () => {
-        const currentTicket = tickets.find(t => t.roomId === roomId && t.votingOn);
-        if (!currentTicket) return;
-
-        // Resetar votos dos jogadores
-        players
-            .filter(p => p.roomId === roomId && p.role !== 'observer')
-            .forEach(p => p.vote = undefined);
-
-        currentTicket.score = null;
-
-        io.to(roomId).emit('restart');
-        updateClientsInRoom(roomId);
+    socket.on('scoreTime:get', () => {
+        socket.emit('scoreTime', scoreTimeByRoom[roomId] ?? []);
     });
+
+    socket.on('scoreTime:set', (items) => {
+        if (!Array.isArray(items)) return;
+        // normaliza
+        scoreTimeByRoom[roomId] = items.map(({ point, time }) => ({
+            point: String(point ?? ''),
+            time: String(time ?? ''),
+        }));
+        io.to(roomId).emit('scoreTime', scoreTimeByRoom[roomId]);
+    });
+
+    socket.on('scoreTime:add', () => {
+        const list = scoreTimeByRoom[roomId] ?? [];
+        list.push({ point: '', time: '' });
+        scoreTimeByRoom[roomId] = list;
+        io.to(roomId).emit('scoreTime', scoreTimeByRoom[roomId]);
+    });
+
+    socket.on('scoreTime:remove', (index) => {
+        const list = scoreTimeByRoom[roomId] ?? [];
+        if (list.length <= 1) return; // mantém pelo menos 1 linha
+        if (index < 0 || index >= list.length) return;
+        list.splice(index, 1);
+        scoreTimeByRoom[roomId] = list;
+        io.to(roomId).emit('scoreTime', scoreTimeByRoom[roomId]);
+    });
+
+    // socket.on('resetCurrent', () => {
+    //     const currentTicket = tickets.find(t => t.roomId === roomId && t.votingOn);
+    //     if (!currentTicket) return;
+
+    //     // Resetar votos dos jogadores
+    //     players
+    //         .filter(p => p.roomId === roomId && p.role !== 'observer')
+    //         .forEach(p => p.vote = undefined);
+
+    //     currentTicket.score = null;
+
+    //     io.to(roomId).emit('restart');
+    //     updateClientsInRoom(roomId);
+    // });
 
     socket.on("selectTicket", (ticketId) => {
         console.log("🟡 [selectTicket] Ticket selecionado:", ticketId);
