@@ -18,8 +18,11 @@ app.get('/', (req, res) => {
     res.send('<h1>Hello world</h1>');
 });
 
-http.listen(process.env.PORT || 3000, () => {
-    console.log(`listening on *:${process.env.PORT || 3000}`);
+const PORT = process.env.PORT || 3001;
+const HOST = process.env.HOST || '127.0.0.1';
+
+http.listen(PORT, HOST, () => {
+    console.log(`listening on ${HOST}:${PORT}`);
 });
 
 let players = [];
