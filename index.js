@@ -102,6 +102,7 @@ io.on('connection', (socket) => {
 
     socket.on('scoreTime:set', (items) => {
         if (!Array.isArray(items)) return;
+        console.log('[set] room', roomId, items);
         // normaliza
         scoreTimeByRoom[roomId] = items.map(({ point, time }) => ({
             point: String(point ?? ''),
