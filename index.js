@@ -25,7 +25,7 @@ http.listen(process.env.PORT || 3000, () => {
 let players = [];
 let tickets = [];
 let gameType = [];
-let scoreTimeByRoom = {}; // { [roomId: string]: Array<{ point: string, time: string }> }
+let scoreTimeByRoom = {};
 
 let gameTypes = [
     { name: 'Fibonacci', values: [0, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, '☕'] },
